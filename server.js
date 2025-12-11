@@ -28,16 +28,16 @@ const COMBO_WINDOW = 2000;
 
 // Fruit Configuration (must match client)
 const FRUITS = [
-    { name: 'Grape', level: 1, color: '#9333ea', baseSize: 20, sizeIncrement: 11, collisionScale: 1.0 },
-    { name: 'Strawberry', level: 2, color: '#FF1493', baseSize: 20, sizeIncrement: 11, collisionScale: 1.0 },
-    { name: 'Lemon', level: 3, color: '#FFF44F', baseSize: 20, sizeIncrement: 11, collisionScale: 0.95 },
-    { name: 'Orange', level: 4, color: '#FF8C00', baseSize: 18, sizeIncrement: 11, collisionScale: 1.0 },
-    { name: 'Apple', level: 5, color: '#FF4444', baseSize: 20, sizeIncrement: 11, collisionScale: 1.0 },
-    { name: 'Peach', level: 6, color: '#FFB6C1', baseSize: 20, sizeIncrement: 11, collisionScale: 0.80 },
-    { name: 'Coconut', level: 7, color: '#8B4513', baseSize: 20, sizeIncrement: 11, collisionScale: 1.0 },
-    { name: 'Melon', level: 8, color: '#90EE90', baseSize: 26, sizeIncrement: 11, collisionScale: 0.95 },
-    { name: 'Pineapple', level: 9, color: '#FFD700', baseSize: 20, sizeIncrement: 11, collisionScale: 1.0 },
-    { name: 'Watermelon', level: 10, color: '#32CD32', baseSize: 20, sizeIncrement: 11, collisionScale: 1.0 }
+    { name: 'Grape', level: 1, color: '#9333ea', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-jiyu-circle-grape.png', baseSize: 20, sizeIncrement: 11, collisionScale: 1.0 },
+    { name: 'Strawberry', level: 2, color: '#FF1493', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-leesol-circledown.png', baseSize: 20, sizeIncrement: 11, collisionScale: 1.0 },
+    { name: 'Lemon', level: 3, color: '#FFF44F', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-sui-circleup-lemon.png', baseSize: 20, sizeIncrement: 11, collisionScale: 0.95 },
+    { name: 'Orange', level: 4, color: '#FF8C00', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-haum-circle-orangemediu.png', baseSize: 18, sizeIncrement: 11, collisionScale: 1.0 },
+    { name: 'Apple', level: 5, color: '#FF4444', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-jiyu-circlemedi.png', baseSize: 20, sizeIncrement: 11, collisionScale: 1.0 },
+    { name: 'Peach', level: 6, color: '#FFB6C1', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-kya-circleup.png', baseSize: 20, sizeIncrement: 11, collisionScale: 0.80 },
+    { name: 'Coconut', level: 7, color: '#8B4513', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-kya-circle-coconut.png', baseSize: 20, sizeIncrement: 11, collisionScale: 1.0 },
+    { name: 'Melon', level: 8, color: '#90EE90', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-leesol-circle-melonbig.png', baseSize: 26, sizeIncrement: 11, collisionScale: 0.95 },
+    { name: 'Pineapple', level: 9, color: '#FFD700', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-haum-circle.png', baseSize: 20, sizeIncrement: 11, collisionScale: 1.0 },
+    { name: 'Watermelon', level: 10, color: '#32CD32', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-sui-circle.png', baseSize: 20, sizeIncrement: 11, collisionScale: 1.0 }
 ];
 
 // Game State
@@ -145,6 +145,7 @@ function dropFruit(x, playerId) {
         angularVelocity: 0,
         name: nextBlock.name,
         color: nextBlock.color,
+        image: nextBlock.image,
         level: nextBlock.level,
         baseSize: nextBlock.baseSize,
         sizeIncrement: nextBlock.sizeIncrement,
@@ -244,6 +245,7 @@ function checkForMerges() {
                         angularVelocity: 0,
                         name: newFruit.name,
                         color: newFruit.color,
+                        image: newFruit.image,
                         level: newLevel,
                         baseSize: newFruit.baseSize,
                         sizeIncrement: newFruit.sizeIncrement,
@@ -375,7 +377,7 @@ function startPhysicsLoop() {
     }, 1000 / 60);
 }
 
-// Broadcast Loop (30 FPS to save bandwidth)
+// Broadcast Loop (60 FPS for smooth visuals)
 function startBroadcastLoop() {
     setInterval(() => {
         io.emit('gameState', {
@@ -387,7 +389,7 @@ function startBroadcastLoop() {
             maxCombo: gameState.maxCombo,
             combo: gameState.combo
         });
-    }, 1000 / 30);
+    }, 1000 / 60);
 }
 
 // Reset Combo
