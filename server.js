@@ -27,17 +27,18 @@ const MAX_LEVEL = 10;
 const COMBO_WINDOW = 2000;
 
 // Fruit Configuration (must match client)
+// 1.5x larger for better visibility and gameplay
 const FRUITS = [
-    { name: 'Grape', level: 1, color: '#9333ea', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-jiyu-circle-grape.png', baseSize: 20, sizeIncrement: 11, collisionScale: 1.0 },
-    { name: 'Strawberry', level: 2, color: '#FF1493', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-leesol-circledown.png', baseSize: 20, sizeIncrement: 11, collisionScale: 1.0 },
-    { name: 'Lemon', level: 3, color: '#FFF44F', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-sui-circleup-lemon.png', baseSize: 20, sizeIncrement: 11, collisionScale: 0.95 },
-    { name: 'Orange', level: 4, color: '#FF8C00', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-haum-circle-orangemediu.png', baseSize: 18, sizeIncrement: 11, collisionScale: 1.0 },
-    { name: 'Apple', level: 5, color: '#FF4444', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-jiyu-circlemedi.png', baseSize: 20, sizeIncrement: 11, collisionScale: 1.0 },
-    { name: 'Peach', level: 6, color: '#FFB6C1', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-kya-circleup.png', baseSize: 20, sizeIncrement: 11, collisionScale: 0.80 },
-    { name: 'Coconut', level: 7, color: '#8B4513', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-kya-circle-coconut.png', baseSize: 20, sizeIncrement: 11, collisionScale: 1.0 },
-    { name: 'Melon', level: 8, color: '#90EE90', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-leesol-circle-melonbig.png', baseSize: 26, sizeIncrement: 11, collisionScale: 0.95 },
-    { name: 'Pineapple', level: 9, color: '#FFD700', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-haum-circle.png', baseSize: 20, sizeIncrement: 11, collisionScale: 1.0 },
-    { name: 'Watermelon', level: 10, color: '#32CD32', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-sui-circle.png', baseSize: 20, sizeIncrement: 11, collisionScale: 1.0 }
+    { name: 'Grape', level: 1, color: '#9333ea', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-jiyu-circle-grape.png', baseSize: 30, sizeIncrement: 16.5, collisionScale: 1.0 },
+    { name: 'Strawberry', level: 2, color: '#FF1493', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-leesol-circledown.png', baseSize: 30, sizeIncrement: 16.5, collisionScale: 1.0 },
+    { name: 'Lemon', level: 3, color: '#FFF44F', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-sui-circleup-lemon.png', baseSize: 30, sizeIncrement: 16.5, collisionScale: 0.95 },
+    { name: 'Orange', level: 4, color: '#FF8C00', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-haum-circle-orangemediu.png', baseSize: 27, sizeIncrement: 16.5, collisionScale: 1.0 },
+    { name: 'Apple', level: 5, color: '#FF4444', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-jiyu-circlemedi.png', baseSize: 30, sizeIncrement: 16.5, collisionScale: 1.0 },
+    { name: 'Peach', level: 6, color: '#FFB6C1', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-kya-circleup.png', baseSize: 30, sizeIncrement: 16.5, collisionScale: 0.80 },
+    { name: 'Coconut', level: 7, color: '#8B4513', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-kya-circle-coconut.png', baseSize: 30, sizeIncrement: 16.5, collisionScale: 1.0 },
+    { name: 'Melon', level: 8, color: '#90EE90', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-leesol-circle-melonbig.png', baseSize: 39, sizeIncrement: 16.5, collisionScale: 0.95 },
+    { name: 'Pineapple', level: 9, color: '#FFD700', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-haum-circle.png', baseSize: 30, sizeIncrement: 16.5, collisionScale: 1.0 },
+    { name: 'Watermelon', level: 10, color: '#32CD32', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-sui-circle.png', baseSize: 30, sizeIncrement: 16.5, collisionScale: 1.0 }
 ];
 
 // Game State
@@ -199,7 +200,7 @@ function checkForMerges() {
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 const touchDist = b1.radius + b2.radius;
                 
-                if (dist < touchDist * 1.15) {
+                if (dist < touchDist * 1.05) { // Reduced from 1.15 - require closer contact
                     const mergeKey = `${b1.uid}-${b2.uid}`;
                     if (processedMerges.has(mergeKey)) continue;
                     
@@ -390,7 +391,7 @@ function startPhysicsLoop() {
     }, 1000 / 60);
 }
 
-// Broadcast Loop (30 FPS - balanced for mobile performance)
+// Broadcast Loop (60 FPS for smooth visuals)
 function startBroadcastLoop() {
     setInterval(() => {
         io.emit('gameState', {
@@ -403,7 +404,7 @@ function startBroadcastLoop() {
             combo: gameState.combo,
             nextFruit: gameState.nextFruit
         });
-    }, 1000 / 30); // 30 FPS is smoother for mobile than 60 FPS
+    }, 1000 / 60);
 }
 
 // Reset Combo
