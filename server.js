@@ -1,5 +1,4 @@
 // Suikiii Game - Node.js Server with Matter.js Physics
-// Deploy this on Render.com
 
 const express = require('express');
 const http = require('http');
@@ -27,7 +26,6 @@ const MAX_LEVEL = 10;
 const COMBO_WINDOW = 2000;
 
 // Fruit Configuration (must match client)
-// 1.3x larger for better visibility (not too big)
 const FRUITS = [
     { name: 'Grape', level: 1, color: '#9333ea', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-jiyu-circle-grape.png', baseSize: 26, sizeIncrement: 14.3, collisionScale: 1.0 },
     { name: 'Strawberry', level: 2, color: '#FF1493', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-leesol-circledown.png', baseSize: 26, sizeIncrement: 14.3, collisionScale: 1.0 },
