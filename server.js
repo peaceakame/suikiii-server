@@ -49,7 +49,8 @@ let gameState = {
     totalBlocks: 0,
     maxCombo: 0,
     combo: 0,
-    lastMergeTime: 0
+    lastMergeTime: 0,
+    nextFruit: null // What fruit will be dropped next
 };
 
 let engine;
@@ -129,7 +130,9 @@ function initPhysics() {
 
 // Drop Fruit
 function dropFruit(x, playerId) {
-    const nextBlock = getRandomBlock();
+    // Use the pre-determined nextFruit (so client preview matches)
+    // If none exists, generate one (first drop)
+    const nextBlock = gameState.nextFruit || getRandomBlock();
     const radius = getRadius(nextBlock);
     
     const newBlock = {
@@ -152,6 +155,9 @@ function dropFruit(x, playerId) {
         createdAt: Date.now()
     };
     
+    // Prepare the NEXT fruit for preview
+    gameState.nextFruit = getRandomBlock();
+    
     // Create Matter.js body
     const body = Matter.Bodies.circle(newBlock.x, newBlock.y, newBlock.radius, {
         restitution: 0.15, // Less bouncy
@@ -168,7 +174,7 @@ function dropFruit(x, playerId) {
     gameState.blocks.push(newBlock);
     gameState.totalBlocks++;
     
-    console.log(`🍎 Fruit dropped by ${playerId} at x=${x}`);
+    console.log(`🍎 Fruit dropped by ${playerId}: ${newBlock.name} at x=${x}`);
     
     return newBlock;
 }
@@ -384,7 +390,7 @@ function startPhysicsLoop() {
     }, 1000 / 60);
 }
 
-// Broadcast Loop (60 FPS for smooth visuals)
+// Broadcast Loop (30 FPS - balanced for mobile performance)
 function startBroadcastLoop() {
     setInterval(() => {
         io.emit('gameState', {
@@ -394,9 +400,10 @@ function startBroadcastLoop() {
             gameOver: gameState.gameOver,
             totalBlocks: gameState.totalBlocks,
             maxCombo: gameState.maxCombo,
-            combo: gameState.combo
+            combo: gameState.combo,
+            nextFruit: gameState.nextFruit
         });
-    }, 1000 / 60);
+    }, 1000 / 30); // 30 FPS is smoother for mobile than 60 FPS
 }
 
 // Reset Combo
@@ -413,6 +420,11 @@ io.on('connection', (socket) => {
     console.log('👤 Player connected:', socket.id);
     
     // Send current game state to new player
+    // Initialize nextFruit if not set
+    if (!gameState.nextFruit) {
+        gameState.nextFruit = getRandomBlock();
+    }
+    
     socket.emit('gameState', {
         blocks: gameState.blocks,
         score: gameState.score,
@@ -420,7 +432,8 @@ io.on('connection', (socket) => {
         gameOver: gameState.gameOver,
         totalBlocks: gameState.totalBlocks,
         maxCombo: gameState.maxCombo,
-        combo: gameState.combo
+        combo: gameState.combo,
+        nextFruit: gameState.nextFruit
     });
     
     // Handle fruit drop
@@ -441,7 +454,8 @@ io.on('connection', (socket) => {
             gameOver: gameState.gameOver,
             totalBlocks: gameState.totalBlocks,
             maxCombo: gameState.maxCombo,
-            combo: gameState.combo
+            combo: gameState.combo,
+            nextFruit: gameState.nextFruit
         });
     });
     
