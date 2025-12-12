@@ -1,4 +1,5 @@
 // Suikiii Game - Node.js Server with Matter.js Physics
+// Deploy this on Render.com
 
 const express = require('express');
 const http = require('http');
@@ -26,12 +27,13 @@ const MAX_LEVEL = 10;
 const COMBO_WINDOW = 2000;
 
 // Fruit Configuration (must match client)
+// 1.3x larger for better visibility (not too big)
 const FRUITS = [
     { name: 'Grape', level: 1, color: '#9333ea', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-jiyu-circle-grape.png', baseSize: 26, sizeIncrement: 14.3, collisionScale: 1.0 },
     { name: 'Strawberry', level: 2, color: '#FF1493', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-leesol-circledown.png', baseSize: 26, sizeIncrement: 14.3, collisionScale: 1.0 },
     { name: 'Lemon', level: 3, color: '#FFF44F', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-sui-circleup-lemon.png', baseSize: 26, sizeIncrement: 14.3, collisionScale: 0.95 },
     { name: 'Orange', level: 4, color: '#FF8C00', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-haum-circle-orangemediu.png', baseSize: 23.4, sizeIncrement: 14.3, collisionScale: 1.0 },
-    { name: 'Apple', level: 5, color: '#FF4444', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-jiyu-circlemedi.png', baseSize: 26, sizeIncrement: 14.3, collisionScale: 1.0 },
+    { name: 'Apple', level: 5, color: '#FF4444', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-jiyu-circlemedi.png', baseSize: 26, sizeIncrement: 14.3, collisionScale: 0.85 },
     { name: 'Peach', level: 6, color: '#FFB6C1', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-kya-circleup.png', baseSize: 26, sizeIncrement: 14.3, collisionScale: 0.80 },
     { name: 'Coconut', level: 7, color: '#8B4513', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-kya-circle-coconut.png', baseSize: 26, sizeIncrement: 14.3, collisionScale: 1.0 },
     { name: 'Melon', level: 8, color: '#90EE90', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-leesol-circle-melonbig.png', baseSize: 33.8, sizeIncrement: 14.3, collisionScale: 0.95 },
@@ -403,8 +405,20 @@ function startPhysicsLoop() {
 // Broadcast Loop (60 FPS for smooth visuals)
 function startBroadcastLoop() {
     setInterval(() => {
+        // Optimize for mobile: send only essential rendering data
+        const optimizedBlocks = gameState.blocks.map(b => ({
+            uid: b.uid,
+            x: Math.round(b.x * 10) / 10, // Round to 1 decimal to reduce data
+            y: Math.round(b.y * 10) / 10,
+            radius: b.radius,
+            rotation: Math.round((b.rotation || 0) * 100) / 100,
+            image: b.image,
+            name: b.name,
+            level: b.level
+        }));
+        
         io.emit('gameState', {
-            blocks: gameState.blocks,
+            blocks: optimizedBlocks,
             score: gameState.score,
             highScore: gameState.highScore,
             gameOver: gameState.gameOver,
