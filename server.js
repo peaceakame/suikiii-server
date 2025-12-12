@@ -432,6 +432,17 @@ io.on('connection', (socket) => {
         
         const { x } = data;
         dropFruit(x, socket.id);
+        
+        // Immediately broadcast new state so fruit appears instantly
+        io.emit('gameState', {
+            blocks: gameState.blocks,
+            score: gameState.score,
+            highScore: gameState.highScore,
+            gameOver: gameState.gameOver,
+            totalBlocks: gameState.totalBlocks,
+            maxCombo: gameState.maxCombo,
+            combo: gameState.combo
+        });
     });
     
     // Handle restart
