@@ -81,21 +81,19 @@ function getRandomBlock() {
 // Initialize Matter.js Physics
 function initPhysics() {
     engine = Matter.Engine.create({
-        gravity: { x: 0, y: GRAVITY },
-        enableSleeping: true,
+        gravity: { x: 0, y: 1.0 }, // Increased from 0.28 for faster, less floaty feel
+        enableSleeping: false, // Disable sleeping to prevent floating fruits
         positionIterations: 10,
         velocityIterations: 10
     });
     
-    engine.world.gravity.scale = 0.001;
     world = engine.world;
     
     // Create walls
     const wallOptions = { 
         isStatic: true, 
-        friction: 0.8, 
-        restitution: 0.15,
-        slop: 0.05,
+        friction: 0.3, // Lower friction for walls (less sticky)
+        restitution: 0.1, // Less bouncy
         label: 'wall'
     };
     const wallThickness = BORDER_WIDTH * 2;
@@ -156,12 +154,10 @@ function dropFruit(x, playerId) {
     
     // Create Matter.js body
     const body = Matter.Bodies.circle(newBlock.x, newBlock.y, newBlock.radius, {
-        restitution: 0.2,
-        friction: 0.5,
-        frictionAir: 0.01,
-        frictionStatic: 0.8,
-        density: 0.001,
-        slop: 0.05,
+        restitution: 0.15, // Less bouncy
+        friction: 0.3, // Lower friction (less sticky)
+        frictionAir: 0.005, // Lower air resistance (less slowmo)
+        density: 0.002, // Slightly denser (heavier feel)
         label: `fruit-${newBlock.level}`
     });
     
@@ -303,12 +299,10 @@ function checkForMerges() {
         // Create bodies for new merged fruits
         toAdd.forEach(newBlock => {
             const body = Matter.Bodies.circle(newBlock.x, newBlock.y, newBlock.radius, {
-                restitution: 0.2,
-                friction: 0.5,
-                frictionAir: 0.01,
-                frictionStatic: 0.8,
-                density: 0.001,
-                slop: 0.05,
+                restitution: 0.15,
+                friction: 0.3,
+                frictionAir: 0.005,
+                density: 0.002,
                 label: `fruit-${newBlock.level}`
             });
             
@@ -323,12 +317,25 @@ function checkForMerges() {
 
 // Check Game Over
 function checkGameOver() {
-    const dangerBlocks = gameState.blocks.filter(b => 
-        b.y - b.radius < GAME_OVER_LINE
-    );
+    // Only check blocks that have settled (low velocity)
+    // This prevents false game over from temporary merges or drops
+    const settledDangerBlocks = gameState.blocks.filter(b => {
+        const body = bodiesMap.get(b.uid);
+        if (!body) return false;
+        
+        // Check if block is above danger line
+        const isAboveLine = b.y - b.radius < GAME_OVER_LINE;
+        
+        // Check if block has settled (low velocity and not sleeping)
+        const velocity = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+        const isSettled = velocity < 0.3 && !body.isSleeping;
+        
+        return isAboveLine && isSettled;
+    });
     
-    if (dangerBlocks.length > 0 && !gameState.gameOver) {
+    if (settledDangerBlocks.length > 0 && !gameState.gameOver) {
         if (!gameOverTimer) {
+            console.log(`⚠️ Danger: ${settledDangerBlocks.length} settled blocks above line`);
             gameOverTimer = setTimeout(() => {
                 gameState.gameOver = true;
                 console.log('💀 Game Over! Final Score:', gameState.score);
@@ -337,7 +344,7 @@ function checkGameOver() {
                     highScore: gameState.highScore,
                     maxCombo: gameState.maxCombo
                 });
-            }, 2000);
+            }, 3000); // 3 second grace period
         }
     } else {
         if (gameOverTimer) {
