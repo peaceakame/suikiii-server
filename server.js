@@ -1,5 +1,4 @@
 // Suikiii Game - Node.js Server with Matter.js Physics
-// OPTIMIZED VERSION - Sends velocity data for client interpolation
 
 const express = require('express');
 const http = require('http');
