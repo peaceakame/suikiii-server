@@ -60,6 +60,7 @@ let gameOverTimer = null;
 let lastMergeTime = 0;
 let comboCount = 0;
 let firstClientId = null; // Track first connected client for history saving
+let lastBroadcastState = null; // Track last broadcast state for delta updates
 
 // Helper Functions
 function getRadius(fruit) {
@@ -400,9 +401,25 @@ function startPhysicsLoop() {
     }, 1000 / 60);
 }
 
-// Broadcast Loop (60 FPS for smooth visuals)
+// Broadcast Loop - OPTIMIZED to 20 FPS (still smooth, 66% less bandwidth)
 function startBroadcastLoop() {
     setInterval(() => {
+        // Skip broadcast if game state hasn't changed significantly
+        const currentStateHash = `${gameState.blocks.length}-${gameState.score}-${gameState.gameOver}`;
+        const blocksMoving = gameState.blocks.some(b => {
+            const body = bodiesMap.get(b.uid);
+            if (!body) return false;
+            const velocity = Math.sqrt(body.velocity.x ** 2 + body.velocity.y ** 2);
+            return velocity > 0.1; // Only broadcast if blocks are moving
+        });
+        
+        // Only broadcast if: blocks are moving, score changed, or game over state changed
+        if (!blocksMoving && lastBroadcastState === currentStateHash && gameState.blocks.length > 0) {
+            return; // Skip this broadcast - nothing changed!
+        }
+        
+        lastBroadcastState = currentStateHash;
+        
         // Optimize for mobile: send only essential rendering data
         const optimizedBlocks = gameState.blocks.map(b => ({
             uid: b.uid,
@@ -425,7 +442,7 @@ function startBroadcastLoop() {
             combo: gameState.combo,
             nextFruit: gameState.nextFruit
         });
-    }, 1000 / 60);
+    }, 50); // 20 FPS (was 1000/60 = ~17ms, now 50ms) - Still smooth, 66% less data!
 }
 
 // Reset Combo
