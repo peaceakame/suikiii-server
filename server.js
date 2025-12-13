@@ -1,4 +1,5 @@
 // Suikiii Game - Node.js Server with Matter.js Physics
+// OPTIMIZED VERSION - Sends velocity data for client interpolation
 
 const express = require('express');
 const http = require('http');
@@ -49,18 +50,18 @@ let gameState = {
     maxCombo: 0,
     combo: 0,
     lastMergeTime: 0,
-    nextFruit: null // What fruit will be dropped next
+    nextFruit: null
 };
 
 let engine;
 let world;
-let bodiesMap = new Map(); // Maps block uid to Matter.js body
+let bodiesMap = new Map();
 let processedMerges = new Set();
 let gameOverTimer = null;
 let lastMergeTime = 0;
 let comboCount = 0;
-let firstClientId = null; // Track first connected client for history saving
-let lastBroadcastState = null; // Track last broadcast state for delta updates
+let firstClientId = null;
+let lastBroadcastState = null;
 
 // Helper Functions
 function getRadius(fruit) {
@@ -83,19 +84,18 @@ function getRandomBlock() {
 // Initialize Matter.js Physics
 function initPhysics() {
     engine = Matter.Engine.create({
-        gravity: { x: 0, y: 1.0 }, // Increased from 0.28 for faster, less floaty feel
-        enableSleeping: false, // Disable sleeping to prevent floating fruits
+        gravity: { x: 0, y: 1.0 },
+        enableSleeping: false,
         positionIterations: 10,
         velocityIterations: 10
     });
     
     world = engine.world;
     
-    // Create walls
     const wallOptions = { 
         isStatic: true, 
-        friction: 0.3, // Lower friction for walls (less sticky)
-        restitution: 0.1, // Less bouncy
+        friction: 0.3,
+        restitution: 0.1,
         label: 'wall'
     };
     const wallThickness = BORDER_WIDTH * 2;
@@ -131,8 +131,6 @@ function initPhysics() {
 
 // Drop Fruit
 function dropFruit(x, playerId) {
-    // Use the pre-determined nextFruit (so client preview matches)
-    // If none exists, generate one (first drop)
     const nextBlock = gameState.nextFruit || getRandomBlock();
     const radius = getRadius(nextBlock);
     
@@ -156,15 +154,13 @@ function dropFruit(x, playerId) {
         createdAt: Date.now()
     };
     
-    // Prepare the NEXT fruit for preview
     gameState.nextFruit = getRandomBlock();
     
-    // Create Matter.js body
     const body = Matter.Bodies.circle(newBlock.x, newBlock.y, newBlock.radius, {
-        restitution: 0.15, // Less bouncy
-        friction: 0.3, // Lower friction (less sticky)
-        frictionAir: 0.005, // Lower air resistance (less slowmo)
-        density: 0.002, // Slightly denser (heavier feel)
+        restitution: 0.15,
+        friction: 0.3,
+        frictionAir: 0.005,
+        density: 0.002,
         label: `fruit-${newBlock.level}`
     });
     
@@ -200,7 +196,7 @@ function checkForMerges() {
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 const touchDist = b1.radius + b2.radius;
                 
-                if (dist < touchDist * 1.05) { // Reduced from 1.15 - require closer contact
+                if (dist < touchDist * 1.05) {
                     const mergeKey = `${b1.uid}-${b2.uid}`;
                     if (processedMerges.has(mergeKey)) continue;
                     
@@ -212,7 +208,6 @@ function checkForMerges() {
                     const mergeX = (b1.x + b2.x) / 2;
                     const mergeY = (b1.y + b2.y) / 2;
                     
-                    // Points calculation
                     const basePoints = Math.pow(2, newLevel) * 10;
                     const now = Date.now();
                     const timeSinceLastMerge = now - lastMergeTime;
@@ -236,7 +231,6 @@ function checkForMerges() {
                         gameState.maxCombo = comboCount;
                     }
                     
-                    // Create merged fruit
                     const mergedBlock = {
                         uid: `${Date.now()}-${Math.random()}`,
                         x: mergeX,
@@ -262,7 +256,6 @@ function checkForMerges() {
                     
                     console.log(`✨ Merge: ${b1.name} + ${b2.name} → ${mergedBlock.name} (+${points} pts, combo ${comboCount}x)`);
                     
-                    // Emit merge event
                     io.emit('merge', {
                         x: mergeX,
                         y: mergeY,
@@ -279,7 +272,6 @@ function checkForMerges() {
     }
     
     if (toRemove.size > 0) {
-        // Remove old bodies
         gameState.blocks.filter((_, idx) => toRemove.has(idx)).forEach(block => {
             const body = bodiesMap.get(block.uid);
             if (body) {
@@ -288,7 +280,6 @@ function checkForMerges() {
             }
         });
         
-        // Clean up processed merges
         const removedUids = gameState.blocks.filter((_, idx) => toRemove.has(idx)).map(b => b.uid);
         const newMerges = new Set();
         processedMerges.forEach(key => {
@@ -299,11 +290,9 @@ function checkForMerges() {
         });
         processedMerges = newMerges;
         
-        // Update blocks array
         const remaining = gameState.blocks.filter((_, idx) => !toRemove.has(idx));
         gameState.blocks = remaining;
         
-        // Create bodies for new merged fruits
         toAdd.forEach(newBlock => {
             const body = Matter.Bodies.circle(newBlock.x, newBlock.y, newBlock.radius, {
                 restitution: 0.15,
@@ -324,16 +313,11 @@ function checkForMerges() {
 
 // Check Game Over
 function checkGameOver() {
-    // Only check blocks that have settled (low velocity)
-    // This prevents false game over from temporary merges or drops
     const settledDangerBlocks = gameState.blocks.filter(b => {
         const body = bodiesMap.get(b.uid);
         if (!body) return false;
         
-        // Check if block is above danger line
         const isAboveLine = b.y - b.radius < GAME_OVER_LINE;
-        
-        // Check if block has settled (low velocity and not sleeping)
         const velocity = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
         const isSettled = velocity < 0.3 && !body.isSleeping;
         
@@ -350,10 +334,9 @@ function checkGameOver() {
                     score: gameState.score,
                     highScore: gameState.highScore,
                     maxCombo: gameState.maxCombo,
-                    shouldSaveHistory: false // No client should save (server will tell first client separately)
+                    shouldSaveHistory: false
                 });
                 
-                // Tell only the first connected client to save history
                 if (firstClientId) {
                     io.to(firstClientId).emit('saveHistory', {
                         score: gameState.score,
@@ -361,7 +344,7 @@ function checkGameOver() {
                         maxCombo: gameState.maxCombo
                     });
                 }
-            }, 3000); // 3 second grace period
+            }, 3000);
         }
     } else {
         if (gameOverTimer) {
@@ -376,10 +359,8 @@ function startPhysicsLoop() {
     setInterval(() => {
         if (gameState.gameOver) return;
         
-        // Update Matter.js engine
         Matter.Engine.update(engine, 1000 / 60);
         
-        // Sync Matter.js bodies with game state
         gameState.blocks = gameState.blocks.map(block => {
             const body = bodiesMap.get(block.uid);
             if (body) {
@@ -401,32 +382,36 @@ function startPhysicsLoop() {
     }, 1000 / 60);
 }
 
-// Broadcast Loop - OPTIMIZED to 20 FPS (still smooth, 66% less bandwidth)
+// OPTIMIZED Broadcast Loop - 30 FPS for smoother client interpolation
+// Includes velocity data for client-side prediction
 function startBroadcastLoop() {
     setInterval(() => {
-        // Skip broadcast if game state hasn't changed significantly
         const currentStateHash = `${gameState.blocks.length}-${gameState.score}-${gameState.gameOver}`;
         const blocksMoving = gameState.blocks.some(b => {
             const body = bodiesMap.get(b.uid);
             if (!body) return false;
             const velocity = Math.sqrt(body.velocity.x ** 2 + body.velocity.y ** 2);
-            return velocity > 0.1; // Only broadcast if blocks are moving
+            return velocity > 0.05; // Lower threshold - broadcast even slow movement
         });
         
-        // Only broadcast if: blocks are moving, score changed, or game over state changed
         if (!blocksMoving && lastBroadcastState === currentStateHash && gameState.blocks.length > 0) {
-            return; // Skip this broadcast - nothing changed!
+            return;
         }
         
         lastBroadcastState = currentStateHash;
         
-        // Optimize for mobile: send only essential rendering data
+        // Send position AND velocity for client interpolation/prediction
         const optimizedBlocks = gameState.blocks.map(b => ({
             uid: b.uid,
-            x: Math.round(b.x * 10) / 10, // Round to 1 decimal to reduce data
+            x: Math.round(b.x * 10) / 10,
             y: Math.round(b.y * 10) / 10,
+            // Include velocity for client-side prediction
+            vx: Math.round((b.vx || 0) * 100) / 100,
+            vy: Math.round((b.vy || 0) * 100) / 100,
             radius: b.radius,
             rotation: Math.round((b.rotation || 0) * 100) / 100,
+            // Include angular velocity for rotation prediction
+            av: Math.round((b.angularVelocity || 0) * 100) / 100,
             image: b.image,
             name: b.name,
             level: b.level
@@ -440,9 +425,11 @@ function startBroadcastLoop() {
             totalBlocks: gameState.totalBlocks,
             maxCombo: gameState.maxCombo,
             combo: gameState.combo,
-            nextFruit: gameState.nextFruit
+            nextFruit: gameState.nextFruit,
+            // Include server timestamp for latency compensation
+            serverTime: Date.now()
         });
-    }, 50); // 20 FPS (was 1000/60 = ~17ms, now 50ms) - Still smooth, 66% less data!
+    }, 33); // ~30 FPS (33ms) - better balance of smoothness vs bandwidth
 }
 
 // Reset Combo
@@ -458,14 +445,11 @@ setInterval(() => {
 io.on('connection', (socket) => {
     console.log('👤 Player connected:', socket.id);
     
-    // Track first client for history saving
     if (!firstClientId) {
         firstClientId = socket.id;
         console.log('📸 First client designated for history saving:', socket.id);
     }
     
-    // Send current game state to new player
-    // Initialize nextFruit if not set
     if (!gameState.nextFruit) {
         gameState.nextFruit = getRandomBlock();
     }
@@ -478,10 +462,10 @@ io.on('connection', (socket) => {
         totalBlocks: gameState.totalBlocks,
         maxCombo: gameState.maxCombo,
         combo: gameState.combo,
-        nextFruit: gameState.nextFruit
+        nextFruit: gameState.nextFruit,
+        serverTime: Date.now()
     });
     
-    // Handle fruit drop
     socket.on('dropFruit', (data) => {
         if (gameState.gameOver) {
             socket.emit('error', { message: 'Game is over' });
@@ -491,7 +475,6 @@ io.on('connection', (socket) => {
         const { x } = data;
         dropFruit(x, socket.id);
         
-        // Immediately broadcast new state so fruit appears instantly
         io.emit('gameState', {
             blocks: gameState.blocks,
             score: gameState.score,
@@ -500,29 +483,28 @@ io.on('connection', (socket) => {
             totalBlocks: gameState.totalBlocks,
             maxCombo: gameState.maxCombo,
             combo: gameState.combo,
-            nextFruit: gameState.nextFruit
+            nextFruit: gameState.nextFruit,
+            serverTime: Date.now()
         });
     });
     
-    // Handle restart
     socket.on('restart', () => {
         console.log('🔄 Game restarting...');
         
-        // Clear all bodies
         bodiesMap.forEach((body) => {
             Matter.World.remove(world, body);
         });
         bodiesMap.clear();
         
-        // Reset game state
         gameState = {
             blocks: [],
             score: 0,
-            highScore: gameState.highScore, // Keep high score
+            highScore: gameState.highScore,
             gameOver: false,
             totalBlocks: 0,
             maxCombo: 0,
-            combo: 0
+            combo: 0,
+            nextFruit: getRandomBlock()
         };
         
         processedMerges.clear();
@@ -534,14 +516,16 @@ io.on('connection', (socket) => {
             gameOverTimer = null;
         }
         
-        io.emit('gameState', gameState);
+        io.emit('gameState', {
+            ...gameState,
+            serverTime: Date.now()
+        });
         console.log('✅ Game restarted');
     });
     
     socket.on('disconnect', () => {
         console.log('👋 Player disconnected:', socket.id);
         
-        // If first client disconnects, clear it (will be reassigned to next connecting client)
         if (socket.id === firstClientId) {
             firstClientId = null;
             console.log('📸 First client disconnected, will reassign on next connection');
