@@ -50,7 +50,8 @@ let gameState = {
     maxCombo: 0,
     combo: 0,
     lastMergeTime: 0,
-    nextFruit: null
+    nextFruit: null,
+    contributors: {}
 };
 
 let engine;
@@ -158,8 +159,8 @@ function dropFruit(x, playerId) {
     
     const body = Matter.Bodies.circle(newBlock.x, newBlock.y, newBlock.radius, {
         restitution: 0.15,
-        friction: 0.3,
-        frictionAir: 0.005,
+        friction: newBlock.level === 1 ? 0.8 : 0.3,
+        frictionAir: newBlock.level === 1 ? 0.02 : 0.005,
         density: 0.002,
         label: `fruit-${newBlock.level}`
     });
@@ -426,6 +427,7 @@ function startBroadcastLoop() {
             maxCombo: gameState.maxCombo,
             combo: gameState.combo,
             nextFruit: gameState.nextFruit,
+            contributors: gameState.contributors,
             // Include server timestamp for latency compensation
             serverTime: Date.now()
         });
@@ -463,6 +465,7 @@ io.on('connection', (socket) => {
         maxCombo: gameState.maxCombo,
         combo: gameState.combo,
         nextFruit: gameState.nextFruit,
+        contributors: gameState.contributors,
         serverTime: Date.now()
     });
     
@@ -472,7 +475,15 @@ io.on('connection', (socket) => {
             return;
         }
         
-        const { x } = data;
+        const { x, playerName } = data;
+        const name = playerName || 'TiiiKiii';
+        
+        // Track contributor
+        if (!gameState.contributors[name]) {
+            gameState.contributors[name] = 0;
+        }
+        gameState.contributors[name]++;
+        
         dropFruit(x, socket.id);
         
         io.emit('gameState', {
@@ -484,6 +495,7 @@ io.on('connection', (socket) => {
             maxCombo: gameState.maxCombo,
             combo: gameState.combo,
             nextFruit: gameState.nextFruit,
+            contributors: gameState.contributors,
             serverTime: Date.now()
         });
     });
@@ -504,7 +516,8 @@ io.on('connection', (socket) => {
             totalBlocks: 0,
             maxCombo: 0,
             combo: 0,
-            nextFruit: getRandomBlock()
+            nextFruit: getRandomBlock(),
+            contributors: {}
         };
         
         processedMerges.clear();
@@ -527,8 +540,15 @@ io.on('connection', (socket) => {
         console.log('👋 Player disconnected:', socket.id);
         
         if (socket.id === firstClientId) {
-            firstClientId = null;
-            console.log('📸 First client disconnected, will reassign on next connection');
+            // Reassign to another connected client if available
+            const connectedSockets = Array.from(io.sockets.sockets.keys()).filter(id => id !== socket.id);
+            if (connectedSockets.length > 0) {
+                firstClientId = connectedSockets[0];
+                console.log('📸 First client reassigned to:', firstClientId);
+            } else {
+                firstClientId = null;
+                console.log('📸 No clients remaining, firstClientId cleared');
+            }
         }
     });
 });
