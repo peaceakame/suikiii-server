@@ -1,4 +1,4 @@
-// Suikiii Game - Node.js Server with Matter.js Physics
+// Suikiii Game - Node.js Server with Matter.js
 // OPTIMIZED VERSION
 
 const express = require('express');
@@ -478,11 +478,15 @@ io.on('connection', (socket) => {
         const { x, playerName } = data;
         const name = playerName || 'TiiiKiii';
         
+        console.log(`👤 Player name received: "${playerName}" -> using: "${name}"`);
+        
         // Track contributor
         if (!gameState.contributors[name]) {
             gameState.contributors[name] = 0;
         }
         gameState.contributors[name]++;
+        
+        console.log('📊 Contributors:', JSON.stringify(gameState.contributors));
         
         dropFruit(x, socket.id);
         
