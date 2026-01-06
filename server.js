@@ -63,6 +63,7 @@ let lastMergeTime = 0;
 let comboCount = 0;
 let firstClientId = null;
 let lastBroadcastState = null;
+let playerQueues = new Map(); // Personal nextFruit per player
 
 // Helper Functions
 function getRadius(fruit) {
@@ -95,7 +96,7 @@ function initPhysics() {
     
     const wallOptions = { 
         isStatic: true, 
-        friction: 0.3,
+        friction: 0.5,
         restitution: 0.1,
         label: 'wall'
     };
@@ -131,8 +132,8 @@ function initPhysics() {
 }
 
 // Drop Fruit
-function dropFruit(x, playerId) {
-    const nextBlock = gameState.nextFruit || getRandomBlock();
+function dropFruit(x, playerId, fruitToDrop) {
+    const nextBlock = fruitToDrop || getRandomBlock();
     const radius = getRadius(nextBlock);
     
     const newBlock = {
@@ -155,12 +156,10 @@ function dropFruit(x, playerId) {
         createdAt: Date.now()
     };
     
-    gameState.nextFruit = getRandomBlock();
-    
     const body = Matter.Bodies.circle(newBlock.x, newBlock.y, newBlock.radius, {
         restitution: 0.15,
-        friction: newBlock.level === 1 ? 0.8 : 0.3,
-        frictionAir: newBlock.level === 1 ? 0.02 : 0.005,
+        friction: newBlock.level <= 3 ? 0.8 : 0.3,
+        frictionAir: newBlock.level <= 3 ? 0.02 : 0.005,
         density: 0.002,
         label: `fruit-${newBlock.level}`
     });
@@ -320,7 +319,8 @@ function checkGameOver() {
         
         const isAboveLine = b.y - b.radius < GAME_OVER_LINE;
         const velocity = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
-        const isSettled = velocity < 0.3 && !body.isSleeping;
+        // Consider settled if velocity is low OR body is sleeping
+        const isSettled = velocity < 0.3 || body.isSleeping;
         
         return isAboveLine && isSettled;
     });
@@ -331,19 +331,31 @@ function checkGameOver() {
             gameOverTimer = setTimeout(() => {
                 gameState.gameOver = true;
                 console.log('💀 Game Over! Final Score:', gameState.score);
-                io.emit('gameOver', {
-                    score: gameState.score,
-                    highScore: gameState.highScore,
-                    maxCombo: gameState.maxCombo,
-                    shouldSaveHistory: false
-                });
                 
-                if (firstClientId) {
+                // Get currently connected clients
+                const connectedSockets = Array.from(io.sockets.sockets.keys());
+                
+                if (connectedSockets.length > 0) {
+                    io.emit('gameOver', {
+                        score: gameState.score,
+                        highScore: gameState.highScore,
+                        maxCombo: gameState.maxCombo,
+                        shouldSaveHistory: false
+                    });
+                    
+                    // Make sure firstClientId is valid, reassign if needed
+                    if (!firstClientId || !connectedSockets.includes(firstClientId)) {
+                        firstClientId = connectedSockets[0];
+                        console.log('📸 Reassigned firstClientId for saveHistory:', firstClientId);
+                    }
+                    
                     io.to(firstClientId).emit('saveHistory', {
                         score: gameState.score,
                         highScore: gameState.highScore,
                         maxCombo: gameState.maxCombo
                     });
+                } else {
+                    console.log('⚠️ No clients connected at game over, skipping saveHistory');
                 }
             }, 3000);
         }
@@ -426,7 +438,6 @@ function startBroadcastLoop() {
             totalBlocks: gameState.totalBlocks,
             maxCombo: gameState.maxCombo,
             combo: gameState.combo,
-            nextFruit: gameState.nextFruit,
             contributors: gameState.contributors,
             // Include server timestamp for latency compensation
             serverTime: Date.now()
@@ -452,9 +463,8 @@ io.on('connection', (socket) => {
         console.log('📸 First client designated for history saving:', socket.id);
     }
     
-    if (!gameState.nextFruit) {
-        gameState.nextFruit = getRandomBlock();
-    }
+    // Generate personal nextFruit for this player
+    playerQueues.set(socket.id, getRandomBlock());
     
     socket.emit('gameState', {
         blocks: gameState.blocks,
@@ -464,10 +474,20 @@ io.on('connection', (socket) => {
         totalBlocks: gameState.totalBlocks,
         maxCombo: gameState.maxCombo,
         combo: gameState.combo,
-        nextFruit: gameState.nextFruit,
+        nextFruit: playerQueues.get(socket.id),
         contributors: gameState.contributors,
         serverTime: Date.now()
     });
+    
+    // If game is already over, send gameOver event so client shows the screen
+    if (gameState.gameOver) {
+        socket.emit('gameOver', {
+            score: gameState.score,
+            highScore: gameState.highScore,
+            maxCombo: gameState.maxCombo,
+            shouldSaveHistory: false
+        });
+    }
     
     socket.on('dropFruit', (data) => {
         if (gameState.gameOver) {
@@ -488,8 +508,16 @@ io.on('connection', (socket) => {
         
         console.log('📊 Contributors:', JSON.stringify(gameState.contributors));
         
-        dropFruit(x, socket.id);
+        // Get this player's fruit from their personal queue
+        const playerFruit = playerQueues.get(socket.id) || getRandomBlock();
         
+        // Drop the fruit
+        dropFruit(x, socket.id, playerFruit);
+        
+        // Generate new fruit for this player
+        playerQueues.set(socket.id, getRandomBlock());
+        
+        // Broadcast game state to all (without nextFruit - each player has their own)
         io.emit('gameState', {
             blocks: gameState.blocks,
             score: gameState.score,
@@ -498,10 +526,12 @@ io.on('connection', (socket) => {
             totalBlocks: gameState.totalBlocks,
             maxCombo: gameState.maxCombo,
             combo: gameState.combo,
-            nextFruit: gameState.nextFruit,
             contributors: gameState.contributors,
             serverTime: Date.now()
         });
+        
+        // Send personal nextFruit only to this player
+        socket.emit('personalNextFruit', { nextFruit: playerQueues.get(socket.id) });
     });
     
     socket.on('restart', () => {
@@ -520,7 +550,6 @@ io.on('connection', (socket) => {
             totalBlocks: 0,
             maxCombo: 0,
             combo: 0,
-            nextFruit: getRandomBlock(),
             contributors: {}
         };
         
@@ -533,6 +562,12 @@ io.on('connection', (socket) => {
             gameOverTimer = null;
         }
         
+        // Generate new personal fruits for all connected players
+        io.sockets.sockets.forEach((s, id) => {
+            playerQueues.set(id, getRandomBlock());
+            s.emit('personalNextFruit', { nextFruit: playerQueues.get(id) });
+        });
+        
         io.emit('gameState', {
             ...gameState,
             serverTime: Date.now()
@@ -542,6 +577,9 @@ io.on('connection', (socket) => {
     
     socket.on('disconnect', () => {
         console.log('👋 Player disconnected:', socket.id);
+        
+        // Clean up player's queue
+        playerQueues.delete(socket.id);
         
         if (socket.id === firstClientId) {
             // Reassign to another connected client if available
