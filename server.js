@@ -28,16 +28,16 @@ const COMBO_WINDOW = 2000;
 
 // Fruit Configuration (must match client)
 const FRUITS = [
-    { name: 'Grape', level: 1, color: '#9333ea', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-jiyu-circle-grape.png', baseSize: 26, sizeIncrement: 14.3, collisionScale: 1.0 },
-    { name: 'Strawberry', level: 2, color: '#FF1493', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-leesol-circledown.png', baseSize: 26, sizeIncrement: 14.3, collisionScale: 1.0 },
-    { name: 'Lemon', level: 3, color: '#FFF44F', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-sui-circleup-lemon.png', baseSize: 26, sizeIncrement: 14.3, collisionScale: 0.95 },
-    { name: 'Orange', level: 4, color: '#FF8C00', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-haum-circle-orangemediu.png', baseSize: 23.4, sizeIncrement: 14.3, collisionScale: 1.0 },
-    { name: 'Apple', level: 5, color: '#FF4444', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-jiyu-circlemedi.png', baseSize: 26, sizeIncrement: 14.3, collisionScale: 0.85 },
-    { name: 'Peach', level: 6, color: '#FFB6C1', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-kya-circleup.png', baseSize: 26, sizeIncrement: 14.3, collisionScale: 0.80 },
-    { name: 'Coconut', level: 7, color: '#8B4513', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-kya-circle-coconut.png', baseSize: 26, sizeIncrement: 14.3, collisionScale: 1.0 },
-    { name: 'Melon', level: 8, color: '#90EE90', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-leesol-circle-melonbig.png', baseSize: 33.8, sizeIncrement: 14.3, collisionScale: 0.95 },
-    { name: 'Pineapple', level: 9, color: '#FFD700', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-haum-circle.png', baseSize: 26, sizeIncrement: 14.3, collisionScale: 1.0 },
-    { name: 'Watermelon', level: 10, color: '#32CD32', image: 'https://cloudy.im/kiiihub/game/assets/suikiii-sui-circle.png', baseSize: 26, sizeIncrement: 14.3, collisionScale: 1.0 }
+    { name: 'Grape', level: 1, color: '#9333ea', image: 'https://tiiikiii.com/wp-content/themes/kiiikiii-theme/assets/images/suikiii-jiyu-circle-grape.png', baseSize: 26, sizeIncrement: 14.3, collisionScale: 1.0 },
+    { name: 'Strawberry', level: 2, color: '#FF1493', image: 'https://tiiikiii.com/wp-content/themes/kiiikiii-theme/assets/images/suikiii-leesol-circledown.png', baseSize: 26, sizeIncrement: 14.3, collisionScale: 1.0 },
+    { name: 'Lemon', level: 3, color: '#FFF44F', image: 'https://tiiikiii.com/wp-content/themes/kiiikiii-theme/assets/images/suikiii-sui-circleup-lemon.png', baseSize: 26, sizeIncrement: 14.3, collisionScale: 0.95 },
+    { name: 'Orange', level: 4, color: '#FF8C00', image: 'https://tiiikiii.com/wp-content/themes/kiiikiii-theme/assets/images/suikiii-haum-circle-orangemediu.png', baseSize: 23.4, sizeIncrement: 14.3, collisionScale: 1.0 },
+    { name: 'Apple', level: 5, color: '#FF4444', image: 'https://tiiikiii.com/wp-content/themes/kiiikiii-theme/assets/images/suikiii-jiyu-circlemedi.png', baseSize: 26, sizeIncrement: 14.3, collisionScale: 0.85 },
+    { name: 'Peach', level: 6, color: '#FFB6C1', image: 'https://tiiikiii.com/wp-content/themes/kiiikiii-theme/assets/images/suikiii-kya-circleup.png', baseSize: 26, sizeIncrement: 14.3, collisionScale: 0.80 },
+    { name: 'Coconut', level: 7, color: '#8B4513', image: 'https://tiiikiii.com/wp-content/themes/kiiikiii-theme/assets/images/suikiii-kya-circle-coconut.png', baseSize: 26, sizeIncrement: 14.3, collisionScale: 1.0 },
+    { name: 'Melon', level: 8, color: '#90EE90', image: 'https://tiiikiii.com/wp-content/themes/kiiikiii-theme/assets/images/suikiii-leesol-circle-melonbig.png', baseSize: 33.8, sizeIncrement: 14.3, collisionScale: 0.95 },
+    { name: 'Pineapple', level: 9, color: '#FFD700', image: 'https://tiiikiii.com/wp-content/themes/kiiikiii-theme/assets/images/suikiii-haum-circle.png', baseSize: 26, sizeIncrement: 14.3, collisionScale: 1.0 },
+    { name: 'Watermelon', level: 10, color: '#32CD32', image: 'https://tiiikiii.com/wp-content/themes/kiiikiii-theme/assets/images/suikiii-sui-circle.png', baseSize: 26, sizeIncrement: 14.3, collisionScale: 1.0 }
 ];
 
 // Game State
